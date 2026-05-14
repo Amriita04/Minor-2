@@ -1,0 +1,6 @@
+# Optional: explainability + gradient boosting (install after requirements.txt)
+-r requirements.txt
+shap>=0.44
+lime>=0.2.0.1
+xgboost>=2.0
+# tensorflow-cpu>=2.15,<2.19
