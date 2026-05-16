@@ -74,9 +74,22 @@ def add_machine_fleet_id(df: pd.DataFrame, n_machines: int = 50) -> pd.DataFrame
     return df
 
 
+def add_machine_type(df: pd.DataFrame) -> pd.DataFrame:
+    """Add synthetic machine type based on failure patterns (M1-M5)."""
+    df = df.copy()
+    if "failure_or_mode" not in df.columns:
+        raise ValueError("add_machine_type requires 'failure_or_mode' column")
+    if "machine_id" not in df.columns:
+        raise ValueError("add_machine_type requires 'machine_id' column")
+    
+    # Create deterministic machine types based on machine_id
+    df["Type"] = "M" + ((df["machine_id"] - 1) % 5 + 1).astype(str)
+    return df
+
+
 def build_machine_wise_table(df_ai: pd.DataFrame) -> pd.DataFrame:
     """Per-machine fleet unit: consumption-style aggregates for dashboard micro view."""
-    need = {"machine_id", "power_kw_proxy", "failure_or_mode", "idle_like"}
+    need = {"machine_id", "power_kw_proxy", "failure_or_mode", "idle_like", "Type"}
     missing = need - set(df_ai.columns)
     if missing:
         raise ValueError(f"build_machine_wise_table missing columns: {sorted(missing)}")
@@ -124,7 +137,8 @@ def prepare_ccpp_splits(
 
 
 def preprocess_ai4i_full(df: pd.DataFrame) -> pd.DataFrame:
-    return add_machine_fleet_id(add_idle_proxy(_clean_ai4i(df)))
+    """Complete AI4I preprocessing pipeline."""
+    return add_machine_type(add_machine_fleet_id(add_idle_proxy(_clean_ai4i(df))))
 
 
 def prepare_ccpp_sequence_arrays(
