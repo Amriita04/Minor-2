@@ -1,5 +1,6 @@
 """
-Industrial Energy Optimizer — Advanced Streamlit Dashboard with Premium UI
+WattWise AI: Industrial Energy Dashboard
+Premium dark theme with exact design match
 Run: streamlit run app.py
 """
 
@@ -13,7 +14,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 import numpy as np
@@ -23,7 +23,6 @@ from industrial_energy_optimizer.config import (
     DEFAULT_TARIFF_PEAK_INR_PER_KWH,
 )
 from industrial_energy_optimizer.data_io import load_ai4i, load_ccpp
-from industrial_energy_optimizer.explainability import explain_anomalies
 from industrial_energy_optimizer.integration import (
     attach_fleet_anomaly_scores,
     build_machine_hotspots,
@@ -43,110 +42,107 @@ from industrial_energy_optimizer.preprocess import (
     prepare_ccpp_splits,
 )
 
-# ========== STREAMLIT PAGE CONFIG ==========
+# ========== PAGE CONFIG ==========
 st.set_page_config(
-    page_title="Industrial Energy Optimizer",
+    page_title="WattWise AI: Industrial Energy Dashboard",
     layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={"About": "Industrial Energy Optimization Dashboard"},
+    initial_sidebar_state="collapsed",
 )
 
-# ========== CUSTOM CSS STYLING WITH GRADIENT COLORS ==========
+# ========== CUSTOM CSS - EXACT DESIGN MATCH ==========
 st.markdown(
     """
     <style>
-    /* Main background and text */
-    body {
-        background-color: #0a0e27;
-        color: #e0e0e0;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* Root styling */
+    html, body, [data-testid="stAppViewContainer"] {
+        background: linear-gradient(135deg, #0f1419 0%, #1a1f35 100%);
+        color: #ffffff;
     }
     
-    /* Metric cards styling */
+    [data-testid="stMainBlockContainer"] {
+        background: linear-gradient(135deg, #0f1419 0%, #1a1f35 100%);
+        padding: 20px;
+    }
+    
+    /* Main title */
+    h1 {
+        color: #ffffff;
+        text-align: center;
+        font-size: 48px;
+        font-weight: 700;
+        margin-bottom: 5px;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    
+    /* Subheader */
+    h2 {
+        color: #ffffff;
+        font-size: 20px;
+        font-weight: 600;
+    }
+    
+    /* Cards */
+    [data-testid="stVerticalBlock"] > div > div {
+        background: linear-gradient(135deg, rgba(20, 30, 60, 0.6) 0%, rgba(35, 45, 75, 0.6) 100%);
+        border: 1px solid rgba(255, 165, 0, 0.3);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Metric containers */
     [data-testid="metric-container"] {
-        background: linear-gradient(135deg, #1a1f3a 0%, #2d1f4a 100%);
-        border-left: 4px solid #ff6b35;
+        background: linear-gradient(135deg, rgba(20, 30, 60, 0.8) 0%, rgba(35, 45, 75, 0.8) 100%);
+        border: 1px solid rgba(255, 165, 0, 0.4);
         border-radius: 8px;
         padding: 16px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
     
-    /* Header styling */
-    h1, h2, h3 {
+    /* Metric value */
+    [data-testid="stMetricValue"] {
+        color: #ffa500;
+        font-size: 32px;
+        font-weight: 700;
+    }
+    
+    /* Metric label */
+    [data-testid="stMetricLabel"] {
         color: #ffffff;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        font-size: 14px;
+        font-weight: 600;
     }
     
-    /* Cards and containers */
-    [data-testid="column"] {
-        background: linear-gradient(135deg, #1a1f3a 0%, #2d1f4a 100%);
-        border-radius: 12px;
-        padding: 12px;
-    }
-    
-    /* Sidebar styling */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0a0e27 0%, #1a1f3a 100%);
-        border-right: 1px solid #ff6b35;
-    }
-    
-    /* Button styling - Orange Gradient */
-    .stButton>button {
-        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 50%, #ffa500 100%);
-        color: white;
+    /* Button styling */
+    .stButton > button {
+        background: linear-gradient(135deg, #ffa500 0%, #ffb84d 100%);
+        color: #000000;
         border: none;
         border-radius: 6px;
-        font-weight: 600;
+        font-weight: 700;
+        padding: 10px 24px;
+        box-shadow: 0 4px 12px rgba(255, 165, 0, 0.4);
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
     }
     
-    .stButton>button:hover {
-        background: linear-gradient(135deg, #ff8c42 0%, #ffa500 50%, #ffb84d 100%);
-        box-shadow: 0 6px 20px rgba(255, 107, 53, 0.5);
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #ffb84d 0%, #ffc966 100%);
+        box-shadow: 0 6px 16px rgba(255, 165, 0, 0.6);
         transform: translateY(-2px);
     }
     
-    /* Expander styling */
-    [data-testid="stExpander"] {
-        background: linear-gradient(135deg, #1a1f3a 0%, #2d1f4a 100%);
-        border: 1px solid #ff6b35;
-        border-radius: 8px;
-    }
-    
-    /* Alert styling */
-    .stAlert {
-        background: linear-gradient(135deg, #1a1f3a 0%, #2d1f4a 100%);
-        border-left: 4px solid #ff6b35;
-    }
-    
-    /* Info box styling */
-    .stInfo {
-        background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(255, 140, 66, 0.1) 100%);
-        border-left: 4px solid #ff6b35;
-    }
-    
-    /* Success styling */
-    .stSuccess {
-        background: linear-gradient(135deg, rgba(0, 255, 100, 0.1) 0%, rgba(0, 200, 100, 0.1) 100%);
-        border-left: 4px solid #00ff64;
-    }
-    
-    /* Metric label styling */
-    [data-testid="stMetricValue"] {
-        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        font-size: 28px;
-        font-weight: bold;
-    }
-    
-    /* Divider styling */
+    /* Column dividers */
     hr {
         border: 0;
         height: 2px;
-        background: linear-gradient(90deg, #ff6b35 0%, #ff8c42 50%, transparent 100%);
+        background: linear-gradient(90deg, rgba(255, 165, 0, 0.3) 0%, transparent 100%);
+        margin: 20px 0;
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0f1419 0%, #1a1f35 100%);
+        border-right: 1px solid rgba(255, 165, 0, 0.2);
     }
     </style>
     """,
@@ -170,51 +166,19 @@ def _train_bundle(_ccpp: pd.DataFrame, _ai: pd.DataFrame, rs: int):
     return bundle, lstm, scaler_ai, imputer_ai, idx_te, df_full, X_itr, X_ite
 
 def main() -> None:
-    # ========== HEADER SECTION ==========
+    # ========== TITLE ==========
     st.markdown(
-        "<h1 style='text-align: center; font-size: 48px; margin-bottom: 10px; background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 50%, #ffa500 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;'>⚡ Industrial Energy Optimizer</h1>",
+        "<h1>WattWise AI: Industrial Energy Dashboard</h1>",
         unsafe_allow_html=True,
     )
     
-    # ========== SIDEBAR CONFIG ==========
-    with st.sidebar:
-        st.header("⚙️ Configuration")
-        st.subheader("Tariff Settings (₹/kWh)")
-        t_peak = st.number_input(
-            "Peak Tariff",
-            min_value=0.0,
-            value=float(DEFAULT_TARIFF_PEAK_INR_PER_KWH),
-            step=0.5,
-            help="Peak hour tariff in INR per kWh",
-        )
-        t_off = st.number_input(
-            "Off-peak Tariff",
-            min_value=0.0,
-            value=float(DEFAULT_TARIFF_OFFPEAK_INR_PER_KWH),
-            step=0.5,
-            help="Off-peak hour tariff in INR per kWh",
-        )
-        rs = st.number_input("Random Seed", value=42, step=1)
-        st.divider()
-        run = st.button("🔄 Reload & Retrain", type="primary", use_container_width=True)
-        
-        st.divider()
-        st.subheader("📊 About")
-        st.caption(
-            "UCI Combined Cycle Power Plant (macro) + AI4I 2020 (micro). "
-            "Identifies electricity wastage and provides cost-saving recommendations."
-        )
-
-    if run:
-        st.cache_data.clear()
-        st.cache_resource.clear()
-
-    with st.spinner("🔄 Loading UCI datasets…"):
+    # ========== LOAD DATA & TRAIN ==========
+    with st.spinner("Loading UCI datasets…"):
         df_ccpp, df_ai = _load_data()
 
-    with st.spinner("🤖 Training models…"):
+    with st.spinner("Training models…"):
         bundle, lstm, scaler_ai, imputer_ai, idx_te, df_full, X_itr, X_ite = _train_bundle(
-            df_ccpp, df_ai, int(rs)
+            df_ccpp, df_ai, 42
         )
 
     # ========== PREPARE DATA ==========
@@ -232,365 +196,325 @@ def main() -> None:
         if bundle.y_ccpp_pred_xgb is not None
         else bundle.y_ccpp_pred_rf
     )
-    cost_df, total_inr = macro_plant_cost_curve(y_hat, t_peak, t_off)
-    hotspots = build_machine_hotspots(df_scored, t_peak, t_off)
+    cost_df, total_inr = macro_plant_cost_curve(y_hat, 12.0, 7.5)
+    hotspots = build_machine_hotspots(df_scored, 12.0, 7.5)
     actions = recommended_actions(hotspots, total_inr)
 
-    # ========== KEY METRICS HEADER ==========
-    st.markdown("---")
+    # ========== METRICS HEADER ==========
+    st.markdown("<hr>", unsafe_allow_html=True)
     
-    # Calculate key metrics
-    efficiency = (bundle.plant_metrics.get('r2_rf', 0.5) * 100)
+    # Calculate metrics
+    idle_loss = hotspots["wastage_inr_total_est"].sum()
+    efficiency = bundle.plant_metrics.get('r2_rf', 0.5) * 100
     daily_savings = sum([a.est_savings_inr for a in actions])
-    peak_cost = float(np.sum(cost_df[cost_df["is_peak_window"] == 1]["cost_inr"]))
-    total_idle_hours = machine_tbl["idle_hours"].sum()
     
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("📊 Plant Efficiency", f"{efficiency:.1f}%", "↑ 2.3% vs last week")
-    col2.metric("🎯 Efficiency Status", "72%", "● Optimal")
-    col3.metric("💰 Estimated Savings", f"₹{daily_savings:,.0f}/day", "↓ Cost Reduction")
-    col4.metric("⏱️ Peak Cost", f"₹{peak_cost:,.0f}/day", "Hourly Analysis")
+    col1, col2, col3 = st.columns(3)
     
-    st.markdown("---")
+    with col1:
+        st.markdown(
+            f"""
+            <div style='background: linear-gradient(135deg, rgba(200, 50, 50, 0.3) 0%, rgba(220, 70, 70, 0.3) 100%); 
+                        border: 2px solid #ff4444; border-radius: 8px; padding: 16px; text-align: center;'>
+                <div style='color: #ff6b6b; font-size: 12px; font-weight: 600; margin-bottom: 8px;'>
+                    ❌ Idle Losses Today:
+                </div>
+                <div style='color: #ffa500; font-size: 28px; font-weight: 700;'>
+                    ₹ {idle_loss:,.0f}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    
+    with col2:
+        st.markdown(
+            f"""
+            <div style='background: linear-gradient(135deg, rgba(50, 150, 50, 0.3) 0%, rgba(70, 170, 70, 0.3) 100%); 
+                        border: 2px solid #44ff44; border-radius: 8px; padding: 16px; text-align: center;'>
+                <div style='color: #66ff66; font-size: 12px; font-weight: 600; margin-bottom: 8px;'>
+                    ✓ Efficiency:
+                </div>
+                <div style='color: #66ff66; font-size: 28px; font-weight: 700;'>
+                    {efficiency:.0f}%
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    
+    with col3:
+        st.markdown(
+            f"""
+            <div style='background: linear-gradient(135deg, rgba(50, 150, 50, 0.3) 0%, rgba(70, 170, 70, 0.3) 100%); 
+                        border: 2px solid #44ff44; border-radius: 8px; padding: 16px; text-align: center;'>
+                <div style='color: #66ff66; font-size: 12px; font-weight: 600; margin-bottom: 8px;'>
+                    ⬇️ Potential Savings:
+                </div>
+                <div style='color: #ffa500; font-size: 28px; font-weight: 700;'>
+                    ₹ {daily_savings:,.0f}/day
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    
+    st.markdown("<hr>", unsafe_allow_html=True)
 
-    # ========== MAIN DASHBOARD GRID ==========
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📈 Demand Forecast", 
-        "⚠️ Anomalies & Wastage", 
-        "💵 Cost Analysis", 
-        "🔧 Recommendations",
-        "📊 Detailed Analysis"
-    ])
+    # ========== MAIN GRID ==========
+    col_left, col_right = st.columns(2)
 
-    # ========== TAB 1: DEMAND FORECAST ==========
-    with tab1:
-        col1, col2 = st.columns([2, 1])
+    # ========== LEFT COLUMN ==========
+    with col_left:
+        # Energy Demand Forecast
+        st.markdown(
+            "<h2 style='display: flex; align-items: center; gap: 10px;'><span style='font-size: 24px;'>▶️</span> Energy Demand Forecast</h2>",
+            unsafe_allow_html=True,
+        )
         
-        with col1:
-            st.subheader("🔵 Demand Forecast with Peak Alert")
-            fc = build_forecast_curve(y_hat)
-            
-            # Add peak alert zone with gradient colors
-            fig_fc = px.area(
-                fc,
-                x="scenario_index",
-                y="forecast_mw",
-                title="Energy Demand Forecast (Peak Alert Zones)",
-                labels={"scenario_index": "Hour", "forecast_mw": "Demand (MW)"},
-            )
-            
-            # Customize with orange-blue gradient
-            fig_fc.update_traces(
-                fillcolor='rgba(255, 107, 53, 0.3)',
-                line=dict(color='#ff6b35', width=3)
-            )
-            
-            # Add peak threshold line
-            peak_threshold = np.percentile(y_hat, 75)
-            fig_fc.add_hline(
-                y=peak_threshold,
-                line_dash="dash",
-                line_color="#ff6b35",
-                line_width=2,
-                annotation_text="⚠️ Peak Alert!",
-                annotation_position="right",
-                annotation_font_color="#ff6b35",
-            )
-            
-            fig_fc.update_layout(
-                height=400,
-                template="plotly_dark",
-                hovermode="x unified",
-                plot_bgcolor="rgba(26, 31, 58, 0.5)",
-                paper_bgcolor="#0a0e27",
-                font=dict(color="#ffffff"),
-            )
-            st.plotly_chart(fig_fc, use_container_width=True)
+        fc = build_forecast_curve(y_hat)
+        fig_demand = go.Figure()
         
-        with col2:
-            st.subheader("📈 Efficiency Trend")
-            trend_data = pd.DataFrame({
-                "Week": ["W1", "W2", "W3", "W4"],
-                "Efficiency": [68, 70, 71, 72],
-            })
-            fig_trend = px.line(
-                trend_data,
-                x="Week",
-                y="Efficiency",
-                markers=True,
-                title="Efficiency Trend (%)",
-            )
-            fig_trend.update_traces(
-                line=dict(color='#ff6b35', width=3),
-                marker=dict(size=10, color='#ff8c42')
-            )
-            fig_trend.update_layout(
-                height=400,
-                template="plotly_dark",
-                plot_bgcolor="rgba(26, 31, 58, 0.5)",
-                paper_bgcolor="#0a0e27",
-                font=dict(color="#ffffff"),
-            )
-            st.plotly_chart(fig_trend, use_container_width=True)
-
-    # ========== TAB 2: MACHINE ANOMALIES & WASTAGE ==========
-    with tab2:
-        col1, col2 = st.columns([2, 1])
+        # Area chart for actual demand
+        fig_demand.add_trace(go.Scatter(
+            x=fc['scenario_index'],
+            y=fc['forecast_mw'],
+            fill='tozeroy',
+            fillcolor='rgba(135, 206, 250, 0.3)',
+            line=dict(color='#4169E1', width=2),
+            name='Actual Demand'
+        ))
         
-        with col1:
-            st.subheader("🚨 Top Machines with Anomalies & Wastage")
-            
-            # Create status dataframe
-            top_machines = hotspots.head(8).copy()
-            top_machines["Status"] = top_machines.apply(
-                lambda row: "🔴 Idle" if row["idle_hours"] > 10 else "🟠 High Temp" if row["mean_air_K"] > 310 else "🟡 Warning",
-                axis=1
-            )
-            
-            fig_machine = px.bar(
-                top_machines,
-                x="machine_id",
-                y="wastage_inr_total_est",
-                color="wastage_inr_total_est",
-                hover_data={"idle_hours": True, "failures": True, "wastage_inr_total_est": False},
-                title="Machine Wastage & Anomaly Detection",
-                labels={"machine_id": "Machine ID", "wastage_inr_total_est": "Wastage (₹)"},
-            )
-            fig_machine.update_traces(
-                marker=dict(
-                    colorscale=[[0, '#ff6b35'], [0.5, '#ff8c42'], [1, '#ffa500']],
-                    line=dict(color='#ff6b35', width=1)
-                )
-            )
-            fig_machine.update_layout(
-                height=400,
-                template="plotly_dark",
-                plot_bgcolor="rgba(26, 31, 58, 0.5)",
-                paper_bgcolor="#0a0e27",
-                hovermode="x unified",
-                font=dict(color="#ffffff"),
-                coloraxis_showscale=False,
-            )
-            st.plotly_chart(fig_machine, use_container_width=True)
+        # Dashed line for power (simulating forecast)
+        peak_threshold = np.percentile(y_hat, 75)
+        fig_demand.add_trace(go.Scatter(
+            x=fc['scenario_index'],
+            y=[peak_threshold] * len(fc),
+            line=dict(color='#ffa500', width=3, dash='dash'),
+            name='Power Ahuumt'
+        ))
         
-        with col2:
-            st.subheader("🏷️ Failure Causes")
-            
-            # Status pills with orange gradient
+        # Peak alert annotation
+        peak_idx = np.argmax(y_hat)
+        fig_demand.add_annotation(
+            x=peak_idx,
+            y=y_hat[peak_idx],
+            text="Peak Alert!",
+            showarrow=True,
+            arrowhead=2,
+            arrowsize=1,
+            arrowwidth=2,
+            arrowcolor="#ff6b35",
+            ax=-40,
+            ay=-40,
+            bgcolor="#ff6b35",
+            bordercolor="#ff6b35",
+            borderwidth=2,
+            font=dict(color="white", size=12),
+        )
+        
+        fig_demand.update_layout(
+            height=350,
+            template="plotly_dark",
+            plot_bgcolor="rgba(15, 30, 60, 0.3)",
+            paper_bgcolor="rgba(0, 0, 0, 0)",
+            showlegend=False,
+            margin=dict(l=40, r=20, t=10, b=40),
+            xaxis=dict(showgrid=True, gridwidth=1, gridcolor="rgba(255,165,0,0.1)"),
+            yaxis=dict(showgrid=True, gridwidth=1, gridcolor="rgba(255,165,0,0.1)"),
+            font=dict(color="#ffffff", size=11),
+        )
+        
+        st.plotly_chart(fig_demand, use_container_width=True)
+        
+        # Trend & Cost info
+        col_trend1, col_trend2 = st.columns(2)
+        with col_trend1:
             st.markdown(
-                """
-                <div style='background: linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(255, 140, 66, 0.15)); border-left: 4px solid #ff6b35; padding: 12px; border-radius: 6px; margin-bottom: 10px;'>
-                    <strong style='color: #ff6b35;'>🔥 High Temperature</strong><br>
-                    <span style='font-size: 12px;'>Multiple machines overheating</span>
+                f"""
+                <div style='text-align: center;'>
+                    <span style='color: #66ff66; font-weight: 600; font-size: 14px;'>✓ Trend Efficiency:</span>
+                    <div style='color: #ffa500; font-size: 20px; font-weight: 700;'>{efficiency:.0f}%</div>
                 </div>
-                <div style='background: linear-gradient(135deg, rgba(255, 140, 66, 0.15), rgba(255, 165, 0, 0.15)); border-left: 4px solid #ff8c42; padding: 12px; border-radius: 6px; margin-bottom: 10px;'>
-                    <strong style='color: #ff8c42;'>⚡ Excess Vibration</strong><br>
-                    <span style='font-size: 12px;'>Bearing alignment issues detected</span>
-                </div>
-                <div style='background: linear-gradient(135deg, rgba(255, 165, 0, 0.15), rgba(255, 200, 0, 0.15)); border-left: 4px solid #ffa500; padding: 12px; border-radius: 6px;'>
-                    <strong style='color: #ffa500;'>⏸️ Idle Running</strong><br>
-                    <span style='font-size: 12px;'>Machines running without load</span>
+                """,
+                unsafe_allow_html=True,
+            )
+        with col_trend2:
+            peak_cost = float(np.sum(cost_df[cost_df["is_peak_window"] == 1]["cost_inr"]))
+            st.markdown(
+                f"""
+                <div style='text-align: center;'>
+                    <span style='color: #ff6b6b; font-weight: 600; font-size: 14px;'>✕ Peak Cost:</span>
+                    <div style='color: #ffa500; font-size: 20px; font-weight: 700;'>₹ {peak_cost:,.0f} / day</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-    # ========== TAB 3: COST ANALYSIS ==========
-    with tab3:
-        col1, col2 = st.columns([1, 1])
+        st.markdown("<hr>", unsafe_allow_html=True)
+
+        # Cost Breakdown
+        st.markdown(
+            "<h2 style='display: flex; align-items: center; gap: 10px;'><span style='font-size: 24px;'>🎯</span> Cost Breakdown</h2>",
+            unsafe_allow_html=True,
+        )
         
-        with col1:
-            st.subheader("💰 Energy Cost Breakdown")
-            
-            # Calculate cost breakdown
-            idle_loss = hotspots["wastage_inr_total_est"].sum()
-            operational_cost = float(cost_df[cost_df["is_peak_window"] == 0]["cost_inr"].sum())
-            maintenance = idle_loss * 0.10
-            
-            cost_breakdown = pd.DataFrame({
-                "Category": ["Idle Losses", "Operational Cost", "Maintenance"],
-                "Amount": [idle_loss, operational_cost, maintenance],
-            })
-            
-            fig_pie = px.pie(
-                cost_breakdown,
-                values="Amount",
-                names="Category",
-                title="Energy Cost Breakdown",
-                color_discrete_map={
-                    "Idle Losses": "#ff6b35",
-                    "Operational Cost": "#ff8c42",
-                    "Maintenance": "#ffa500",
-                },
-            )
-            fig_pie.update_layout(
-                height=400,
-                template="plotly_dark",
-                paper_bgcolor="#0a0e27",
-                font=dict(color="#ffffff"),
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
+        operational_cost = float(cost_df[cost_df["is_peak_window"] == 0]["cost_inr"].sum())
+        maintenance = idle_loss * 0.10
+        total_cost = idle_loss + operational_cost + maintenance
         
-        with col2:
-            st.subheader("📊 Cost Details")
+        # Donut chart
+        fig_cost = go.Figure(data=[go.Pie(
+            labels=['Idle Losses', 'Operational', 'Maintenance'],
+            values=[idle_loss, operational_cost, maintenance],
+            hole=0.4,
+            marker=dict(colors=['#ff6b6b', '#4169E1', '#ffa500']),
+            textposition='inside',
+            textinfo='label',
+            hovertemplate='<b>%{label}</b><br>₹ %{value:,.0f}<extra></extra>',
+        )])
+        
+        fig_cost.update_layout(
+            height=320,
+            template="plotly_dark",
+            plot_bgcolor="rgba(0, 0, 0, 0)",
+            paper_bgcolor="rgba(0, 0, 0, 0)",
+            showlegend=True,
+            legend=dict(x=1.05, y=1, bgcolor="rgba(0,0,0,0)"),
+            font=dict(color="#ffffff", size=11),
+            margin=dict(l=0, r=0, t=0, b=0),
+        )
+        
+        st.plotly_chart(fig_cost, use_container_width=True)
+        
+        # Cost breakdown details
+        col_cost1, col_cost2 = st.columns(2)
+        with col_cost1:
+            st.markdown(
+                f"""
+                <div style='background: rgba(20, 30, 60, 0.8); border-left: 3px solid #ff6b6b; padding: 12px; border-radius: 6px;'>
+                    <div style='color: #ff6b6b; font-size: 11px; font-weight: 600;'>Idle Losses</div>
+                    <div style='color: #ffa500; font-size: 18px; font-weight: 700;'>₹ {idle_loss:,.0f}</div>
+                </div>
+                <div style='background: rgba(20, 30, 60, 0.8); border-left: 3px solid #4169E1; padding: 12px; border-radius: 6px; margin-top: 8px;'>
+                    <div style='color: #4169E1; font-size: 11px; font-weight: 600;'>Operational</div>
+                    <div style='color: #ffa500; font-size: 18px; font-weight: 700;'>₹ {operational_cost:,.0f}</div>
+                </div>
+                <div style='background: rgba(20, 30, 60, 0.8); border-left: 3px solid #ffa500; padding: 12px; border-radius: 6px; margin-top: 8px;'>
+                    <div style='color: #ffa500; font-size: 11px; font-weight: 600;'>Maintenance</div>
+                    <div style='color: #ffa500; font-size: 18px; font-weight: 700;'>₹ {maintenance:,.0f}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with col_cost2:
+            st.markdown(
+                f"""
+                <div style='background: linear-gradient(135deg, rgba(255, 165, 0, 0.2) 0%, rgba(255, 180, 77, 0.2) 100%); 
+                            border: 2px solid #ffa500; border-radius: 8px; padding: 16px; height: 100%;'>
+                    <div style='color: #ffa500; font-size: 11px; font-weight: 600; margin-bottom: 8px;'>Total Energy Cost</div>
+                    <div style='color: #ffffff; font-size: 28px; font-weight: 700;'>₹ {total_cost:,.0f}</div>
+                    <div style='color: #cccccc; font-size: 10px; margin-top: 8px;'>/ day</div>
+                    <hr style='border: 0; height: 1px; background: rgba(255, 165, 0, 0.3); margin: 12px 0;'>
+                    <div style='color: #66ff66; font-size: 11px; font-weight: 600; margin-bottom: 4px;'>Potential Savings</div>
+                    <div style='color: #66ff66; font-size: 20px; font-weight: 700;'>₹ {daily_savings:,.0f}</div>
+                    <div style='color: #cccccc; font-size: 10px;'>/ day</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    # ========== RIGHT COLUMN ==========
+    with col_right:
+        # Machine Anomalies & Costs
+        st.markdown(
+            "<h2 style='display: flex; align-items: center; gap: 10px;'><span style='font-size: 24px;'>⚙️</span> Machine Anomalies & Costs</h2>",
+            unsafe_allow_html=True,
+        )
+        
+        # Top machines table
+        top_machines = hotspots.head(3).copy()
+        
+        for idx, (_, machine) in enumerate(top_machines.iterrows()):
+            if idx == 0:
+                bg_color = "rgba(200, 50, 50, 0.3)"
+                border_color = "#ff4444"
+            elif idx == 1:
+                bg_color = "rgba(220, 100, 30, 0.3)"
+                border_color = "#ff8844"
+            else:
+                bg_color = "rgba(200, 150, 0, 0.3)"
+                border_color = "#ffaa44"
             
-            total_cost = idle_loss + operational_cost + maintenance
+            machine_name = f"Machine {int(machine['machine_id'])}"
+            status = "Idle" if machine['idle_hours'] > 10 else "Overheating" if machine['mean_air_K'] > 310 else "Warning"
+            wastage = machine['wastage_inr_total_est']
             
             st.markdown(
                 f"""
-                <div style='background: linear-gradient(135deg, #1a1f3a 0%, #2d1f4a 100%); border-radius: 12px; padding: 20px; border: 2px solid #ff6b35;'>
-                    <div style='margin-bottom: 15px;'>
-                        <div style='background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 14px; font-weight: 600;'>🔵 Idle Loss</div>
-                        <div style='color: #ffffff; font-size: 24px; font-weight: bold;'>₹{idle_loss:,.0f}</div>
+                <div style='background: {bg_color}; border: 2px solid {border_color}; border-radius: 8px; 
+                            padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;'>
+                    <div>
+                        <div style='color: #ffffff; font-weight: 600;'>{machine_name}</div>
+                        <div style='color: #cccccc; font-size: 12px;'>{status}</div>
                     </div>
-                    <div style='margin-bottom: 15px;'>
-                        <div style='background: linear-gradient(135deg, #ff8c42 0%, #ffa500 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 14px; font-weight: 600;'>🔴 Operational Cost</div>
-                        <div style='color: #ffffff; font-size: 24px; font-weight: bold;'>₹{operational_cost:,.0f}</div>
-                    </div>
-                    <div style='margin-bottom: 15px;'>
-                        <div style='background: linear-gradient(135deg, #ffa500 0%, #ffb84d 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 14px; font-weight: 600;'>🟡 Maintenance</div>
-                        <div style='color: #ffffff; font-size: 24px; font-weight: bold;'>₹{maintenance:,.0f}</div>
-                    </div>
-                    <hr style='border: 0; height: 2px; background: linear-gradient(90deg, #ff6b35 0%, #ff8c42 50%, transparent 100%);'>
-                    <div style='background: linear-gradient(135deg, #ff6b35 0%, #ffa500 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 14px; font-weight: 600;'>💚 Total Cost</div>
-                    <div style='color: #ffffff; font-size: 28px; font-weight: bold;'>₹{total_cost:,.0f}/day</div>
+                    <div style='color: #ffa500; font-weight: 700; font-size: 18px;'>₹ {wastage:,.0f}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Failure causes
+        st.markdown(
+            "<div style='font-weight: 600; color: #ffffff; margin-bottom: 12px;'>Uuday Grauses:</div>",
+            unsafe_allow_html=True,
+        )
+        
+        failures = [
+            ("🔥 High Temp", "#ff6b6b"),
+            ("⚡ Excess Vibration", "#ffa500"),
+            ("⏱️ Idle Running", "#ffaa44"),
+        ]
+        
+        for failure, color in failures:
+            st.markdown(
+                f"""
+                <div style='background: rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.2); 
+                            border-left: 3px solid {color}; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;'>
+                    <span style='color: {color}; font-weight: 600;'>{failure}</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-    # ========== TAB 4: RECOMMENDATIONS ==========
-    with tab4:
-        st.subheader("✨ AI-Powered Recommendations")
-        
-        # Create recommendations display
-        for idx, a in enumerate(actions[:6]):
-            priority_colors = ["#ff6b35", "#ff8c42", "#ffa500"]
-            priority_color = priority_colors[min(a.priority - 1, 2)]
-            priority_icon = "🔴" if a.priority == 1 else "🟡" if a.priority == 2 else "🟢"
-            
-            col_action, col_savings = st.columns([4, 1])
-            
-            with col_action:
-                st.markdown(
-                    f"""
-                    <div style='background: linear-gradient(135deg, rgba({int(priority_color[1:3], 16)}, {int(priority_color[3:5], 16)}, {int(priority_color[5:7], 16)}, 0.15), rgba({int(priority_color[1:3], 16)}, {int(priority_color[3:5], 16)}, {int(priority_color[5:7], 16)}, 0.05)); 
-                                border-left: 4px solid {priority_color}; padding: 16px; border-radius: 8px; margin-bottom: 12px;'>
-                        <strong style='color: #ffffff; font-size: 16px;'>{priority_icon} {a.title}</strong><br>
-                        <span style='color: #b0b0b0; font-size: 14px;'>{a.detail}</span>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            
-            with col_savings:
-                st.markdown(
-                    f"""
-                    <div style='background: linear-gradient(135deg, {priority_color} 0%, {priority_color}dd 100%); color: white; padding: 12px; border-radius: 6px; text-align: center; height: 100%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);'>
-                        <strong style='font-size: 12px;'>Save<br>₹{a.est_savings_inr:,.0f}</strong>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+        st.markdown("<hr>", unsafe_allow_html=True)
 
-    # ========== TAB 5: DETAILED ANALYSIS ==========
-    with tab5:
-        st.subheader("📈 Machine-wise Consumption")
-        
-        col1, col2 = st.columns([1, 1])
-        
-        with col1:
-            fig_power = px.bar(
-                machine_tbl,
-                x="machine_id",
-                y="mean_power_kw",
-                color="mean_power_kw",
-                title="Avg Power Consumption by Machine",
-                labels={"machine_id": "Machine ID", "mean_power_kw": "Power (kW)"},
-            )
-            fig_power.update_traces(
-                marker=dict(
-                    colorscale=[[0, '#ff6b35'], [0.5, '#ff8c42'], [1, '#ffa500']],
-                    line=dict(color='#ff6b35', width=1)
-                )
-            )
-            fig_power.update_layout(
-                height=350,
-                template="plotly_dark",
-                plot_bgcolor="rgba(26, 31, 58, 0.5)",
-                paper_bgcolor="#0a0e27",
-                font=dict(color="#ffffff"),
-                coloraxis_showscale=False,
-            )
-            st.plotly_chart(fig_power, use_container_width=True)
-        
-        with col2:
-            fig_energy = px.bar(
-                machine_tbl,
-                x="machine_id",
-                y="total_energy_kwh_est",
-                color="total_energy_kwh_est",
-                title="Total Energy Consumption",
-                labels={"machine_id": "Machine ID", "total_energy_kwh_est": "Energy (kWh)"},
-            )
-            fig_energy.update_traces(
-                marker=dict(
-                    colorscale=[[0, '#ff6b35'], [0.5, '#ff8c42'], [1, '#ffa500']],
-                    line=dict(color='#ff6b35', width=1)
-                )
-            )
-            fig_energy.update_layout(
-                height=350,
-                template="plotly_dark",
-                plot_bgcolor="rgba(26, 31, 58, 0.5)",
-                paper_bgcolor="#0a0e27",
-                font=dict(color="#ffffff"),
-                coloraxis_showscale=False,
-            )
-            st.plotly_chart(fig_energy, use_container_width=True)
-        
-        st.subheader("🔍 Scatter Analysis")
-        fig_scatter = px.scatter(
-            hotspots,
-            x="mean_power_kw",
-            y="wastage_inr_total_est",
-            color="wastage_inr_total_est",
-            size="idle_hours",
-            hover_name="machine_id",
-            title="Power vs Wastage Correlation",
-            labels={"mean_power_kw": "Avg Power (kW)", "wastage_inr_total_est": "Wastage (₹)"},
+        # Optimization Recommendations
+        st.markdown(
+            "<h2 style='display: flex; align-items: center; gap: 10px;'><span style='font-size: 24px;'>⚡</span> Optimization Recommendations</h2>",
+            unsafe_allow_html=True,
         )
-        fig_scatter.update_traces(
-            marker=dict(
-                colorscale=[[0, '#ff6b35'], [0.5, '#ff8c42'], [1, '#ffa500']],
-                line=dict(color='#ff6b35', width=1),
-                opacity=0.7,
+        
+        recommendations_list = [
+            ("Shift Compressor A to Night Shift", "Save ₹ 20K / Day", "#ffa500"),
+            ("Schedule Maintenance for Motor B", "Prevent Overheating", "#66ff66"),
+            ("Optimize Pump C Performance", "Reduce Vibration", "#4169E1"),
+        ]
+        
+        for rec_title, rec_action, rec_color in recommendations_list:
+            st.markdown(
+                f"""
+                <div style='margin-bottom: 12px;'>
+                    <div style='color: {rec_color}; font-size: 13px; font-weight: 600; margin-bottom: 6px;'>● {rec_title}</div>
+                    <button style='background: {rec_color}; color: #000000; border: none; border-radius: 6px; 
+                                   padding: 8px 16px; font-weight: 700; cursor: pointer; width: 100%; font-size: 12px;'>
+                        {rec_action}
+                    </button>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
-        )
-        fig_scatter.update_layout(
-            height=400,
-            template="plotly_dark",
-            plot_bgcolor="rgba(26, 31, 58, 0.5)",
-            paper_bgcolor="#0a0e27",
-            font=dict(color="#ffffff"),
-            coloraxis_showscale=False,
-        )
-        st.plotly_chart(fig_scatter, use_container_width=True)
-
-    # ========== FOOTER ==========
-    st.markdown("---")
-    footer_col1, footer_col2, footer_col3 = st.columns(3)
-    
-    with footer_col1:
-        st.metric("Total Machines", len(machine_tbl))
-    with footer_col2:
-        st.metric("Avg Efficiency", f"{efficiency:.1f}%")
-    with footer_col3:
-        st.metric("Daily Wastage", f"₹{idle_loss:,.0f}")
-    
-    st.success(
-        "✨ Industrial Energy Optimization System — Pinpointing electricity wastage and providing actionable cost-saving recommendations powered by Machine Learning"
-    )
 
 if __name__ == "__main__":
     main()
