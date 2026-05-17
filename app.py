@@ -51,21 +51,21 @@ st.set_page_config(
     menu_items={"About": "Industrial Energy Optimization Dashboard"},
 )
 
-# ========== CUSTOM CSS STYLING ==========
+# ========== CUSTOM CSS STYLING WITH GRADIENT COLORS ==========
 st.markdown(
     """
     <style>
     /* Main background and text */
     body {
-        background-color: #0f1419;
+        background-color: #0a0e27;
         color: #e0e0e0;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
     /* Metric cards styling */
     [data-testid="metric-container"] {
-        background-color: #1a2332;
-        border-left: 4px solid #00d4ff;
+        background: linear-gradient(135deg, #1a1f3a 0%, #2d1f4a 100%);
+        border-left: 4px solid #ff6b35;
         border-radius: 8px;
         padding: 16px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
@@ -79,62 +79,74 @@ st.markdown(
     
     /* Cards and containers */
     [data-testid="column"] {
-        background-color: #1a2332;
+        background: linear-gradient(135deg, #1a1f3a 0%, #2d1f4a 100%);
         border-radius: 12px;
         padding: 12px;
     }
     
     /* Sidebar styling */
     [data-testid="stSidebar"] {
-        background-color: #0f1419;
-        border-right: 1px solid #00d4ff;
+        background: linear-gradient(180deg, #0a0e27 0%, #1a1f3a 100%);
+        border-right: 1px solid #ff6b35;
     }
     
-    /* Button styling */
+    /* Button styling - Orange Gradient */
     .stButton>button {
-        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 50%, #ffa500 100%);
         color: white;
         border: none;
         border-radius: 6px;
         font-weight: 600;
         transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
     }
     
     .stButton>button:hover {
-        background: linear-gradient(135deg, #ff8c42 0%, #ffa500 100%);
-        box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+        background: linear-gradient(135deg, #ff8c42 0%, #ffa500 50%, #ffb84d 100%);
+        box-shadow: 0 6px 20px rgba(255, 107, 53, 0.5);
+        transform: translateY(-2px);
     }
     
     /* Expander styling */
     [data-testid="stExpander"] {
-        background-color: #1a2332;
-        border: 1px solid #00d4ff;
+        background: linear-gradient(135deg, #1a1f3a 0%, #2d1f4a 100%);
+        border: 1px solid #ff6b35;
         border-radius: 8px;
     }
     
     /* Alert styling */
     .stAlert {
-        background-color: #1a2332;
-        border-left: 4px solid #00d4ff;
+        background: linear-gradient(135deg, #1a1f3a 0%, #2d1f4a 100%);
+        border-left: 4px solid #ff6b35;
     }
     
     /* Info box styling */
     .stInfo {
-        background-color: rgba(0, 212, 255, 0.1);
-        border-left: 4px solid #00d4ff;
+        background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(255, 140, 66, 0.1) 100%);
+        border-left: 4px solid #ff6b35;
     }
     
     /* Success styling */
     .stSuccess {
-        background-color: rgba(0, 255, 100, 0.1);
+        background: linear-gradient(135deg, rgba(0, 255, 100, 0.1) 0%, rgba(0, 200, 100, 0.1) 100%);
         border-left: 4px solid #00ff64;
     }
     
     /* Metric label styling */
     [data-testid="stMetricValue"] {
-        color: #00d4ff;
+        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         font-size: 28px;
         font-weight: bold;
+    }
+    
+    /* Divider styling */
+    hr {
+        border: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #ff6b35 0%, #ff8c42 50%, transparent 100%);
     }
     </style>
     """,
@@ -160,7 +172,7 @@ def _train_bundle(_ccpp: pd.DataFrame, _ai: pd.DataFrame, rs: int):
 def main() -> None:
     # ========== HEADER SECTION ==========
     st.markdown(
-        "<h1 style='text-align: center; font-size: 48px; margin-bottom: 10px;'>⚡ Industrial Energy Optimizer</h1>",
+        "<h1 style='text-align: center; font-size: 48px; margin-bottom: 10px; background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 50%, #ffa500 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;'>⚡ Industrial Energy Optimizer</h1>",
         unsafe_allow_html=True,
     )
     
@@ -258,14 +270,19 @@ def main() -> None:
             st.subheader("🔵 Demand Forecast with Peak Alert")
             fc = build_forecast_curve(y_hat)
             
-            # Add peak alert zone
+            # Add peak alert zone with gradient colors
             fig_fc = px.area(
                 fc,
                 x="scenario_index",
                 y="forecast_mw",
                 title="Energy Demand Forecast (Peak Alert Zones)",
                 labels={"scenario_index": "Hour", "forecast_mw": "Demand (MW)"},
-                color_discrete_sequence=["#00d4ff"],
+            )
+            
+            # Customize with orange-blue gradient
+            fig_fc.update_traces(
+                fillcolor='rgba(255, 107, 53, 0.3)',
+                line=dict(color='#ff6b35', width=3)
             )
             
             # Add peak threshold line
@@ -274,16 +291,19 @@ def main() -> None:
                 y=peak_threshold,
                 line_dash="dash",
                 line_color="#ff6b35",
-                annotation_text="Peak Alert!",
+                line_width=2,
+                annotation_text="⚠️ Peak Alert!",
                 annotation_position="right",
+                annotation_font_color="#ff6b35",
             )
             
             fig_fc.update_layout(
                 height=400,
                 template="plotly_dark",
                 hovermode="x unified",
-                plot_bgcolor="#1a2332",
-                paper_bgcolor="#0f1419",
+                plot_bgcolor="rgba(26, 31, 58, 0.5)",
+                paper_bgcolor="#0a0e27",
+                font=dict(color="#ffffff"),
             )
             st.plotly_chart(fig_fc, use_container_width=True)
         
@@ -299,13 +319,17 @@ def main() -> None:
                 y="Efficiency",
                 markers=True,
                 title="Efficiency Trend (%)",
-                color_discrete_sequence=["#00ff64"],
+            )
+            fig_trend.update_traces(
+                line=dict(color='#ff6b35', width=3),
+                marker=dict(size=10, color='#ff8c42')
             )
             fig_trend.update_layout(
                 height=400,
                 template="plotly_dark",
-                plot_bgcolor="#1a2332",
-                paper_bgcolor="#0f1419",
+                plot_bgcolor="rgba(26, 31, 58, 0.5)",
+                paper_bgcolor="#0a0e27",
+                font=dict(color="#ffffff"),
             )
             st.plotly_chart(fig_trend, use_container_width=True)
 
@@ -327,37 +351,44 @@ def main() -> None:
                 top_machines,
                 x="machine_id",
                 y="wastage_inr_total_est",
-                color="Type",
-                hover_data={"idle_hours": True, "failures": True},
+                color="wastage_inr_total_est",
+                hover_data={"idle_hours": True, "failures": True, "wastage_inr_total_est": False},
                 title="Machine Wastage & Anomaly Detection",
                 labels={"machine_id": "Machine ID", "wastage_inr_total_est": "Wastage (₹)"},
-                color_discrete_sequence=px.colors.qualitative.Set2,
+            )
+            fig_machine.update_traces(
+                marker=dict(
+                    colorscale=[[0, '#ff6b35'], [0.5, '#ff8c42'], [1, '#ffa500']],
+                    line=dict(color='#ff6b35', width=1)
+                )
             )
             fig_machine.update_layout(
                 height=400,
                 template="plotly_dark",
-                plot_bgcolor="#1a2332",
-                paper_bgcolor="#0f1419",
+                plot_bgcolor="rgba(26, 31, 58, 0.5)",
+                paper_bgcolor="#0a0e27",
                 hovermode="x unified",
+                font=dict(color="#ffffff"),
+                coloraxis_showscale=False,
             )
             st.plotly_chart(fig_machine, use_container_width=True)
         
         with col2:
             st.subheader("🏷️ Failure Causes")
             
-            # Status pills
+            # Status pills with orange gradient
             st.markdown(
                 """
-                <div style='background: rgba(255, 107, 53, 0.2); border-left: 4px solid #ff6b35; padding: 12px; border-radius: 6px; margin-bottom: 10px;'>
+                <div style='background: linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(255, 140, 66, 0.15)); border-left: 4px solid #ff6b35; padding: 12px; border-radius: 6px; margin-bottom: 10px;'>
                     <strong style='color: #ff6b35;'>🔥 High Temperature</strong><br>
                     <span style='font-size: 12px;'>Multiple machines overheating</span>
                 </div>
-                <div style='background: rgba(255, 152, 0, 0.2); border-left: 4px solid #ff9800; padding: 12px; border-radius: 6px; margin-bottom: 10px;'>
-                    <strong style='color: #ff9800;'>⚡ Excess Vibration</strong><br>
+                <div style='background: linear-gradient(135deg, rgba(255, 140, 66, 0.15), rgba(255, 165, 0, 0.15)); border-left: 4px solid #ff8c42; padding: 12px; border-radius: 6px; margin-bottom: 10px;'>
+                    <strong style='color: #ff8c42;'>⚡ Excess Vibration</strong><br>
                     <span style='font-size: 12px;'>Bearing alignment issues detected</span>
                 </div>
-                <div style='background: rgba(255, 193, 7, 0.2); border-left: 4px solid #ffc107; padding: 12px; border-radius: 6px;'>
-                    <strong style='color: #ffc107;'>⏸️ Idle Running</strong><br>
+                <div style='background: linear-gradient(135deg, rgba(255, 165, 0, 0.15), rgba(255, 200, 0, 0.15)); border-left: 4px solid #ffa500; padding: 12px; border-radius: 6px;'>
+                    <strong style='color: #ffa500;'>⏸️ Idle Running</strong><br>
                     <span style='font-size: 12px;'>Machines running without load</span>
                 </div>
                 """,
@@ -387,15 +418,16 @@ def main() -> None:
                 names="Category",
                 title="Energy Cost Breakdown",
                 color_discrete_map={
-                    "Idle Losses": "#00d4ff",
-                    "Operational Cost": "#ff6b35",
-                    "Maintenance": "#ffc107",
+                    "Idle Losses": "#ff6b35",
+                    "Operational Cost": "#ff8c42",
+                    "Maintenance": "#ffa500",
                 },
             )
             fig_pie.update_layout(
                 height=400,
                 template="plotly_dark",
-                paper_bgcolor="#0f1419",
+                paper_bgcolor="#0a0e27",
+                font=dict(color="#ffffff"),
             )
             st.plotly_chart(fig_pie, use_container_width=True)
         
@@ -406,21 +438,21 @@ def main() -> None:
             
             st.markdown(
                 f"""
-                <div style='background: #1a2332; border-radius: 12px; padding: 20px;'>
+                <div style='background: linear-gradient(135deg, #1a1f3a 0%, #2d1f4a 100%); border-radius: 12px; padding: 20px; border: 2px solid #ff6b35;'>
                     <div style='margin-bottom: 15px;'>
-                        <div style='color: #00d4ff; font-size: 14px; font-weight: 600;'>🔵 Idle Loss</div>
+                        <div style='background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 14px; font-weight: 600;'>🔵 Idle Loss</div>
                         <div style='color: #ffffff; font-size: 24px; font-weight: bold;'>₹{idle_loss:,.0f}</div>
                     </div>
                     <div style='margin-bottom: 15px;'>
-                        <div style='color: #ff6b35; font-size: 14px; font-weight: 600;'>🔴 Operational Cost</div>
+                        <div style='background: linear-gradient(135deg, #ff8c42 0%, #ffa500 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 14px; font-weight: 600;'>🔴 Operational Cost</div>
                         <div style='color: #ffffff; font-size: 24px; font-weight: bold;'>₹{operational_cost:,.0f}</div>
                     </div>
                     <div style='margin-bottom: 15px;'>
-                        <div style='color: #ffc107; font-size: 14px; font-weight: 600;'>🟡 Maintenance</div>
+                        <div style='background: linear-gradient(135deg, #ffa500 0%, #ffb84d 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 14px; font-weight: 600;'>🟡 Maintenance</div>
                         <div style='color: #ffffff; font-size: 24px; font-weight: bold;'>₹{maintenance:,.0f}</div>
                     </div>
-                    <hr style='border-color: #00d4ff; opacity: 0.3;'>
-                    <div style='color: #00ff64; font-size: 14px; font-weight: 600;'>💚 Total Cost</div>
+                    <hr style='border: 0; height: 2px; background: linear-gradient(90deg, #ff6b35 0%, #ff8c42 50%, transparent 100%);'>
+                    <div style='background: linear-gradient(135deg, #ff6b35 0%, #ffa500 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 14px; font-weight: 600;'>💚 Total Cost</div>
                     <div style='color: #ffffff; font-size: 28px; font-weight: bold;'>₹{total_cost:,.0f}/day</div>
                 </div>
                 """,
@@ -433,7 +465,8 @@ def main() -> None:
         
         # Create recommendations display
         for idx, a in enumerate(actions[:6]):
-            priority_color = "#ff6b35" if a.priority == 1 else "#ffc107" if a.priority == 2 else "#00ff64"
+            priority_colors = ["#ff6b35", "#ff8c42", "#ffa500"]
+            priority_color = priority_colors[min(a.priority - 1, 2)]
             priority_icon = "🔴" if a.priority == 1 else "🟡" if a.priority == 2 else "🟢"
             
             col_action, col_savings = st.columns([4, 1])
@@ -441,7 +474,7 @@ def main() -> None:
             with col_action:
                 st.markdown(
                     f"""
-                    <div style='background: rgba({int(priority_color[1:3], 16)}, {int(priority_color[3:5], 16)}, {int(priority_color[5:7], 16)}, 0.1); 
+                    <div style='background: linear-gradient(135deg, rgba({int(priority_color[1:3], 16)}, {int(priority_color[3:5], 16)}, {int(priority_color[5:7], 16)}, 0.15), rgba({int(priority_color[1:3], 16)}, {int(priority_color[3:5], 16)}, {int(priority_color[5:7], 16)}, 0.05)); 
                                 border-left: 4px solid {priority_color}; padding: 16px; border-radius: 8px; margin-bottom: 12px;'>
                         <strong style='color: #ffffff; font-size: 16px;'>{priority_icon} {a.title}</strong><br>
                         <span style='color: #b0b0b0; font-size: 14px;'>{a.detail}</span>
@@ -453,7 +486,7 @@ def main() -> None:
             with col_savings:
                 st.markdown(
                     f"""
-                    <div style='background: {priority_color}; color: white; padding: 12px; border-radius: 6px; text-align: center; height: 100%; display: flex; align-items: center; justify-content: center;'>
+                    <div style='background: linear-gradient(135deg, {priority_color} 0%, {priority_color}dd 100%); color: white; padding: 12px; border-radius: 6px; text-align: center; height: 100%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);'>
                         <strong style='font-size: 12px;'>Save<br>₹{a.est_savings_inr:,.0f}</strong>
                     </div>
                     """,
@@ -471,15 +504,23 @@ def main() -> None:
                 machine_tbl,
                 x="machine_id",
                 y="mean_power_kw",
-                color="Type",
+                color="mean_power_kw",
                 title="Avg Power Consumption by Machine",
                 labels={"machine_id": "Machine ID", "mean_power_kw": "Power (kW)"},
+            )
+            fig_power.update_traces(
+                marker=dict(
+                    colorscale=[[0, '#ff6b35'], [0.5, '#ff8c42'], [1, '#ffa500']],
+                    line=dict(color='#ff6b35', width=1)
+                )
             )
             fig_power.update_layout(
                 height=350,
                 template="plotly_dark",
-                plot_bgcolor="#1a2332",
-                paper_bgcolor="#0f1419",
+                plot_bgcolor="rgba(26, 31, 58, 0.5)",
+                paper_bgcolor="#0a0e27",
+                font=dict(color="#ffffff"),
+                coloraxis_showscale=False,
             )
             st.plotly_chart(fig_power, use_container_width=True)
         
@@ -488,15 +529,23 @@ def main() -> None:
                 machine_tbl,
                 x="machine_id",
                 y="total_energy_kwh_est",
-                color="Type",
+                color="total_energy_kwh_est",
                 title="Total Energy Consumption",
                 labels={"machine_id": "Machine ID", "total_energy_kwh_est": "Energy (kWh)"},
+            )
+            fig_energy.update_traces(
+                marker=dict(
+                    colorscale=[[0, '#ff6b35'], [0.5, '#ff8c42'], [1, '#ffa500']],
+                    line=dict(color='#ff6b35', width=1)
+                )
             )
             fig_energy.update_layout(
                 height=350,
                 template="plotly_dark",
-                plot_bgcolor="#1a2332",
-                paper_bgcolor="#0f1419",
+                plot_bgcolor="rgba(26, 31, 58, 0.5)",
+                paper_bgcolor="#0a0e27",
+                font=dict(color="#ffffff"),
+                coloraxis_showscale=False,
             )
             st.plotly_chart(fig_energy, use_container_width=True)
         
@@ -505,17 +554,26 @@ def main() -> None:
             hotspots,
             x="mean_power_kw",
             y="wastage_inr_total_est",
-            color="Type",
+            color="wastage_inr_total_est",
             size="idle_hours",
             hover_name="machine_id",
             title="Power vs Wastage Correlation",
             labels={"mean_power_kw": "Avg Power (kW)", "wastage_inr_total_est": "Wastage (₹)"},
         )
+        fig_scatter.update_traces(
+            marker=dict(
+                colorscale=[[0, '#ff6b35'], [0.5, '#ff8c42'], [1, '#ffa500']],
+                line=dict(color='#ff6b35', width=1),
+                opacity=0.7,
+            )
+        )
         fig_scatter.update_layout(
             height=400,
             template="plotly_dark",
-            plot_bgcolor="#1a2332",
-            paper_bgcolor="#0f1419",
+            plot_bgcolor="rgba(26, 31, 58, 0.5)",
+            paper_bgcolor="#0a0e27",
+            font=dict(color="#ffffff"),
+            coloraxis_showscale=False,
         )
         st.plotly_chart(fig_scatter, use_container_width=True)
 
